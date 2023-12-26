@@ -1,0 +1,47 @@
+version: '3.0'
+services:
+  jtech-mongodb-server:
+    container_name: jtech-mongodb-server
+    image: mongo:4.4.6
+    restart: always
+    ports:
+    - 27017:27017
+    volumes:
+    - $PWD/storage/mongo:/data/db
+    networks:
+    - dev-services
+jtech-zookeeper-server:
+  container_name: jtech-zookeeper-server
+  image: confluentinc/cp-zookeeper:latest
+  restart: always
+  networks:
+    - dev-services
+  environment:
+    ZOOKEEPER_CLIENT_PORT: '2181'
+    ZOOKEEPER_TICK_TIME: '2000'
+  jtech-kafka-server:
+    container_name: jtech-kafka-server
+    image: confluentinc/cp-kafka:latest
+    restart: always
+    networks:
+      - dev-services
+    depends_on:
+      - jtech-zookeeper-server
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_BROKER_ID: '1'
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://jtech-kafka-server:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+  jtech-redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    ports:
+      - 8080:8080
+    environment:
+      KAFKA_BROKERS: localhost:9092
+    network_mode: host
+networks:
+  dev-services:
